@@ -2,7 +2,15 @@
     import { supabase } from '$lib/supabase';
     import { onMount } from 'svelte';
   
-    let bookings = [];
+    type Booking = {
+      id: string;
+      user_id: string;
+      booking_date: string;
+      description: string;
+      created_at: string;
+    };
+  
+    let bookings: Booking[] = [];
     let bookingDate = '';
     let description = '';
     let error = '';
@@ -10,14 +18,14 @@
     onMount(async () => {
       const { data, error } = await supabase.from('bookings').select('*');
       if (error) console.error(error);
-      else bookings = data;
+      else bookings = data || [];
     });
   
     async function addBooking() {
       const { data, error: fetchError } = await supabase.functions.invoke('check-availability', {
         body: { bookingDate }
       });
-      if (fetchError || !data.available) {
+      if (fetchError || !data?.available) {
         error = fetchError?.message || 'Slot unavailable';
         return;
       }
@@ -25,9 +33,10 @@
       const { error: insertError } = await supabase
         .from('bookings')
         .insert({ booking_date: bookingDate, description });
-      if (insertError) error = insertError.message;
-      else {
-        bookings = [...bookings, { booking_date: bookingDate, description }];
+      if (insertError) {
+        error = insertError.message;
+      } else {
+        bookings = [...bookings, { booking_date: bookingDate, description } as Booking];
         bookingDate = '';
         description = '';
       }
